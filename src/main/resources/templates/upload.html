@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Загрузка миссии</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a2e; color: #eee; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #ffd700; color: #1a1a2e; text-decoration: none; border-radius: 5px; }
+        .success { background: rgba(40,167,69,0.3); padding: 10px; border-radius: 5px; margin-bottom: 20px; color: #28a745; }
+        .error { background: rgba(220,53,69,0.3); padding: 10px; border-radius: 5px; margin-bottom: 20px; color: #dc3545; }
+        input, select { padding: 8px; margin: 10px 0; width: 100%; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>📤 Загрузка миссии</h1>
+
+        <div th:if="${successMessage}" class="success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="error" th:text="${errorMessage}"></div>
+
+        <form method="post" enctype="multipart/form-data">
+            <label>Файл миссии:</label>
+            <input type="file" name="file" accept=".json,.xml,.txt,.yaml,.yml" required>
+
+            <button type="submit" class="btn">Загрузить</button>
+            <a href="/" class="btn" style="background: #666;">Назад</a>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>📝 Поддерживаемые форматы</h3>
+        <ul>
+            <li>JSON (.json)</li>
+            <li>XML (.xml)</li>
+            <li>TXT (.txt)</li>
+            <li>YAML (.yaml, .yml)</li>
+            <li>Event (файлы без расширения с pipe-разделителем)</li>
+        </ul>
+    </div>
+</div>
+</body>
+</html>

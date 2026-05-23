@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Детали миссии</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a2e; color: #eee; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 8px 16px; background: #ffd700; color: #1a1a2e; text-decoration: none; border-radius: 5px; margin-right: 10px; margin-top: 10px; }
+        .btn-danger { background: #dc3545; color: white; }
+        a { color: #ffd700; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>📄 Детали миссии</h1>
+        <p><a href="/missions">← Назад к списку</a> | <a href="/">Главная</a></p>
+
+        <h2 th:text="'Миссия: ' + ${mission.missionId}"></h2>
+
+        <table>
+            <tr><th>ID в БД:</th><td th:text="${mission.id}"></td></tr>
+            <tr><th>Дата:</th><td th:text="${mission.date}"></td></tr>
+            <tr><th>Локация:</th><td th:text="${mission.location}"></td></tr>
+            <tr>
+                <th>Результат:</th>
+                <td>
+                    <span th:if="${mission.outcome == 'SUCCESS'}" style="color: #28a745;">✓ УСПЕХ</span>
+                    <span th:if="${mission.outcome == 'FAILURE'}" style="color: #dc3545;">✗ ПРОВАЛ</span>
+                    <span th:unless="${mission.outcome == 'SUCCESS' or mission.outcome == 'FAILURE'}" th:text="${mission.outcome}"></span>
+                </td>
+            </tr>
+            <tr><th>Ущерб:</th><td th:text="${mission.damageCost} + ' ¥'"></td></tr>
+            <tr><th>Создана:</th><td th:text="${mission.createdAt}"></td></tr>
+            <tr><th>Обновлена:</th><td th:text="${mission.updatedAt}"></td></tr>
+        </table>
+
+        <div th:if="${mission.curse != null}">
+            <h3>🕯️ Проклятие</h3>
+            <table>
+                <tr><th>Название:</th><td th:text="${mission.curse.name}"></td></tr>
+                <tr><th>Уровень угрозы:</th><td th:text="${mission.curse.threatLevel}"></td></tr>
+            </table>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(mission.sorcerers)}">
+            <h3>🧙 Участники</h3>
+            <table>
+                <thead><tr><th>Имя</th><th>Ранг</th></tr></thead>
+                <tbody>
+                <tr th:each="s : ${mission.sorcerers}">
+                    <td th:text="${s.name}"></td>
+                    <td th:text="${s.rank}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(mission.techniques)}">
+            <h3>⚔️ Техники</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Тип</th>
+                    <th>Владелец</th>
+                    <th>Урон</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${mission.techniques}">
+                    <td th:text="${t.name}"></td>
+                    <td th:text="${t.type}"></td>
+                    <td th:text="${t.owner}"></td>
+                    <td th:text="${t.damage} + ' ¥'"></td>
+                </tr>
+                </tbody>
+            </table>
+            <p><strong>Общий урон:</strong> <span th:text="${#aggregates.sum(mission.techniques.![damage])} + ' ¥'"></span></p>
+        </div>
+
+        <div style="margin-top: 20px; padding-top: 20px;">
+            <a th:href="'/mission/' + ${mission.id} + '/report?type=SIMPLE'" class="btn">📄 Простой отчет</a>
+            <a th:href="'/mission/' + ${mission.id} + '/report?type=DETAILED'" class="btn">📑 Детальный отчет</a>
+            <a th:href="'/mission/' + ${mission.id} + '/report?type=RISK'" class="btn">⚠️ Анализ рисков</a>
+            <form method="post" th:action="'/mission/' + ${mission.id} + '/delete'" style="display: inline; margin-left: 20px;"
+                  onsubmit="return confirm('Удалить миссию? Это действие необратимо!')">
+                <button type="submit" class="btn btn-danger">🗑 Удалить</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

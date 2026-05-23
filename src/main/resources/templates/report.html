@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Отчет по миссии</title>
+    <style>
+        body { font-family: 'Courier New', monospace; margin: 40px; background: #1a1a2e; color: #eee; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 8px 16px; background: #ffd700; color: #1a1a2e; text-decoration: none; border-radius: 5px; margin-right: 10px; margin-top: 10px; }
+        pre { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+        a { color: #ffd700; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>📊 Отчет по миссии</h1>
+        <p><a th:href="'/mission/' + ${mission.id}">← Назад к миссии</a> | <a href="/missions">Список миссий</a></p>
+
+        <p><strong>Миссия:</strong> <span th:text="${mission.missionId}"></span></p>
+        <p><strong>Локация:</strong> <span th:text="${mission.location}"></span></p>
+        <p><strong>Дата:</strong> <span th:text="${mission.date}"></span></p>
+        <p><strong>Тип отчета:</strong>
+            <span th:if="${reportType == 'SIMPLE'}">📄 Простой отчет</span>
+            <span th:if="${reportType == 'DETAILED'}">📑 Детализированный отчет</span>
+            <span th:if="${reportType == 'RISK'}">⚠️ Анализ рисков</span>
+        </p>
+
+        <pre th:text="${report.content}"></pre>
+
+        <div style="margin-top: 20px;">
+            <button onclick="window.print()" class="btn">🖨️ Печать</button>
+            <button onclick="copyToClipboard()" class="btn">📋 Копировать</button>
+            <a th:href="'/mission/' + ${mission.id} + '/report?type=SIMPLE'" class="btn">Простой</a>
+            <a th:href="'/mission/' + ${mission.id} + '/report?type=DETAILED'" class="btn">Детальный</a>
+            <a th:href="'/mission/' + ${mission.id} + '/report?type=RISK'" class="btn">Риски</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard() {
+        const reportText = document.querySelector('pre').innerText;
+        navigator.clipboard.writeText(reportText).then(function() {
+            alert('Отчет скопирован в буфер обмена');
+        }).catch(function() {
+            alert('Не удалось скопировать');
+        });
+    }
+</script>
+</body>
+</html>

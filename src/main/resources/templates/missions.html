@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Список миссий</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a2e; color: #eee; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(0,0,0,0.3); }
+        .btn { display: inline-block; padding: 5px 10px; background: #ffd700; color: #1a1a2e; text-decoration: none; border-radius: 3px; font-size: 12px; }
+        .success { color: #28a745; }
+        .failure { color: #dc3545; }
+        a { color: #ffd700; }
+        .search { padding: 8px; margin-bottom: 20px; width: 300px; border-radius: 5px; border: none; }
+        .success-message { background: rgba(40,167,69,0.3); padding: 10px; border-radius: 5px; margin-bottom: 20px; color: #28a745; }
+        .error-message { background: rgba(220,53,69,0.3); padding: 10px; border-radius: 5px; margin-bottom: 20px; color: #dc3545; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>📋 Список миссий</h1>
+        <p><a href="/">← На главную</a></p>
+
+        <div th:if="${successMessage}" class="success-message" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="error-message" th:text="${errorMessage}"></div>
+
+        <input type="text" id="search" class="search" placeholder="🔍 Поиск по ID или локации..." onkeyup="filterTable()">
+
+        <table id="missionsTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Mission ID</th>
+                <th>Дата</th>
+                <th>Локация</th>
+                <th>Результат</th>
+                <th>Ущерб</th>
+                <th>Действия</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${missionList}">
+                <td th:text="${item.id}"></td>
+                <td th:text="${item.missionId}"></td>
+                <td th:text="${item.date}"></td>
+                <td th:text="${item.location}"></td>
+                <td>
+                    <span th:if="${item.outcome == 'SUCCESS'}" class="success">✓ УСПЕХ</span>
+                    <span th:if="${item.outcome == 'FAILURE'}" class="failure">✗ ПРОВАЛ</span>
+                    <span th:unless="${item.outcome == 'SUCCESS' or item.outcome == 'FAILURE'}" th:text="${item.outcome}"></span>
+                </td>
+                <td th:text="${item.damageCost} + ' ¥'"></td>
+                <td>
+                    <a th:href="'/mission/' + ${item.id}" class="btn">Детали</a>
+                </td>
+            </tr>
+            <tr th:if="${missionList.empty}">
+                <td colspan="7" style="text-align: center;">Нет миссий в архиве. Загрузите первую миссию!</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function filterTable() {
+        let input = document.getElementById("search");
+        let filter = input.value.toLowerCase();
+        let table = document.getElementById("missionsTable");
+        let rows = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < rows.length; i++) {
+            let cells = rows[i].getElementsByTagName("td");
+            if (cells.length >= 4) {
+                let missionId = cells[1].textContent.toLowerCase();
+                let location = cells[3].textContent.toLowerCase();
+                if (missionId.includes(filter) || location.includes(filter)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
+</body>
+</html>

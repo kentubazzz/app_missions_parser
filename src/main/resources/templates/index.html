@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Архив миссий</title>
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a2e; color: #eee; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #ffd700; color: #1a1a2e; text-decoration: none; border-radius: 5px; }
+        a { color: #ffd700; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 10px 0; }
+    </style>
+
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>🏯 Архив миссий Токийского магического колледжа</h1>
+        <p>Добро пожаловать в архив миссий</p>
+    </div>
+
+    <div class="card">
+        <h2>📋 Меню</h2>
+        <ul>
+            <li><a href="/upload">📤 Загрузить миссию</a></li>
+            <li><a href="/missions">📋 Список миссий</a></li>
+            <li><a href="/swagger-ui.html" target="_blank">📖 Swagger API</a></li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h3>📊 Статистика</h3>
+        <p>Всего миссий: <span th:text="${missions != null ? missions.size() : 0}">0</span></p>
+    </div>
+</div>
+</body>
+</html>
