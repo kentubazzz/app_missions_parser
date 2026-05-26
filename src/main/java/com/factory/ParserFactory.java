@@ -1,56 +1,49 @@
 package com.factory;
 
 import com.exception.UnsupportedFormatException;
+import com.parser.MissionParser;
 import com.parser.*;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ParserFactory {
     private static final Map<String, MissionParser> PARSERS = new HashMap<>();
 
-    private static final NoExtensionParser FALLBACK_PARSER = new NoExtensionParser();
-
     static {
-
         // Регистрация парсеров по расширению
         register("json", new JsonMissionParser());
         register("xml", new XmlMissionParser());
         register("txt", new TxtMissionParser());
         register("yaml", new YamlMissionParser());
         register("yml", new YamlMissionParser());
-
     }
 
     public static void register(String extension, MissionParser parser) {
-        String ext = extension.toLowerCase();
-        PARSERS.put(ext, parser);
+        PARSERS.put(extension.toLowerCase(), parser);
     }
 
     public static MissionParser getParser(File file) {
         String extension = getExtension(file);
 
-        // Сначала ищем по расширению
-
-
-
+        // 1. Пробуем найти парсер по расширению
         MissionParser parser = PARSERS.get(extension);
-
-
-
-
         if (parser != null) {
             return parser;
         }
 
-        // Если не нашли по расширению, пробуем определить по содержимому
-        if (FALLBACK_PARSER.supportsFormat(file)) {
-            return FALLBACK_PARSER;
+        // 2. Для .tmp файлов или файлов без расширения - используем NoExtensionParser
+        if (extension.isEmpty() || extension.equals("tmp")) {
+            NoExtensionParser fallback = new NoExtensionParser();
+            if (fallback.supportsFormat(file)) {
+                return fallback;
+            }
         }
 
+        // 3. Не удалось определить парсер
         throw new UnsupportedFormatException(
-                "Неподдерживаемый формат: " + extension +
+                "Неподдерживаемый формат: " + (extension.isEmpty() ? "без расширения" : extension) +
                         ". Доступные: " + PARSERS.keySet()
         );
     }
