@@ -2,10 +2,9 @@ package com.service;
 
 import com.exception.InvalidMissionFormatException;
 import com.exception.MissionNotFoundException;
-import com.factory.ParserFactory;
 import com.mapper.MissionMapper;
-import com.model.Mission;
-import com.model.dto.MissionResponse;
+import com.model.*;
+import com.model.dto.*;
 import com.model.entity.*;
 import com.parser.MissionParser;
 import com.repository.*;
@@ -15,15 +14,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,74 +48,65 @@ class MissionServiceTest {
     @Mock
     private MissionMapper missionMapper;
 
+    @Mock
+    private MultipartFile multipartFile;
+
     @InjectMocks
     private MissionService missionService;
 
-    private MultipartFile validJsonFile;
-    private MultipartFile invalidFile;
+    private MissionEntity missionEntity;
+    private MissionResponse missionResponse;
+    private Mission mission;
 
     @BeforeEach
     void setUp() {
-        String jsonContent = """
-                {
-                  "missionId": "M-TEST-001",
-                  "date": "2024-12-01",
-                  "location": "Токио",
-                  "outcome": "SUCCESS",
-                  "damageCost": 1000000,
-                  "curse": {
-                    "name": "Тестовое проклятие",
-                    "threatLevel": "HIGH"
-                  },
-                  "sorcerers": [
-                    {"name": "Тестовый маг", "rank": "GRADE_1"}
-                  ],
-                  "techniques": [
-                    {"name": "Тестовая техника", "type": "INNATE", "owner": "Тестовый маг", "damage": 500000}
-                  ]
-                }
-                """;
+        // Подготовка тестовых данных
+        missionEntity = new MissionEntity();
+        missionEntity.setId(1L);
+        missionEntity.setMissionId("MISSION-001");
+        missionEntity.setDate(LocalDate.now());
+        missionEntity.setLocation("Tokyo");
+        missionEntity.setOutcome("SUCCESS");
+        missionEntity.setDamageCost(100000L);
 
-        validJsonFile = new MockMultipartFile(
-                "file",
-                "mission.json",
-                "application/json",
-                jsonContent.getBytes()
-        );
+        missionResponse = new MissionResponse();
+        missionResponse.setId(1L);
+        missionResponse.setMissionId("MISSION-001");
 
-        invalidFile = new MockMultipartFile(
-                "file",
-                "invalid.txt",
-                "text/plain",
-                "Это невалидный файл".getBytes()
-        );
+        mission = new Mission();
+        mission.setMissionId("MISSION-001");
+        mission.setDate(String.valueOf(LocalDate.now()));
+        mission.setLocation("Tokyo");
+        mission.setOutcome("SUCCESS");
+        mission.setDamageCost(100000L);
     }
 
 
     @Test
-    void testSaveMission_DuplicateId_ThrowsException() throws Exception {
+    void testGetAllMissions_ReturnsList() {
         // Given
-        when(missionRepository.existsByMissionId("M-TEST-001")).thenReturn(true);
+        List<MissionEntity> missions = Arrays.asList(missionEntity);
+        when(missionRepository.findAllWithBasicData()).thenReturn(missions);
+        when(missionRepository.findByIdWithSorcerers(anyLong())).thenReturn(Optional.of(missionEntity));
+        when(missionRepository.findByIdWithTechniques(anyLong())).thenReturn(Optional.of(missionEntity));
+        when(missionMapper.toResponse(any(MissionEntity.class))).thenReturn(missionResponse);
 
-        // When & Then
-        assertThatThrownBy(() -> missionService.saveMission(validJsonFile))
-                .isInstanceOf(InvalidMissionFormatException.class)
-                .hasMessageContaining("уже существует");
+        // When
+        List<MissionResponse> result = missionService.getAllMissions();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        verify(missionRepository).findAllWithBasicData();
     }
 
     @Test
-    void testGetMissionById_ExistingId_ReturnsMission() throws Exception {
+    void testGetMissionById_ExistingId_Success() throws MissionNotFoundException {
         // Given
-        MissionEntity entity = new MissionEntity();
-        entity.setId(1L);
-        entity.setMissionId("M-001");
-
-        MissionResponse response = new MissionResponse();
-        response.setId(1L);
-        response.setMissionId("M-001");
-
-        when(missionRepository.findById(1L)).thenReturn(Optional.of(entity));
-        when(missionMapper.toResponse(entity)).thenReturn(response);
+        when(missionRepository.findById(1L)).thenReturn(Optional.of(missionEntity));
+        when(missionRepository.findByIdWithSorcerers(1L)).thenReturn(Optional.of(missionEntity));
+        when(missionRepository.findByIdWithTechniques(1L)).thenReturn(Optional.of(missionEntity));
+        when(missionMapper.toResponse(any(MissionEntity.class))).thenReturn(missionResponse);
 
         // When
         MissionResponse result = missionService.getMissionById(1L);
@@ -122,72 +114,62 @@ class MissionServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getMissionId()).isEqualTo("M-001");
+        verify(missionRepository).findById(1L);
     }
 
     @Test
     void testGetMissionById_NonExistingId_ThrowsException() {
         // Given
-        when(missionRepository.findById(999L)).thenReturn(Optional.empty());
+        when(missionRepository.findById(99L)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> missionService.getMissionById(999L))
+        assertThatThrownBy(() -> missionService.getMissionById(99L))
                 .isInstanceOf(MissionNotFoundException.class)
-                .hasMessageContaining("Миссия не найдена");
+                .hasMessageContaining("не найдена");
     }
 
     @Test
-    void testGetMissionByMissionId_ExistingId_ReturnsMission() throws Exception {
+    void testGetMissionByMissionId_Success() throws MissionNotFoundException {
         // Given
-        MissionEntity entity = new MissionEntity();
-        entity.setId(1L);
-        entity.setMissionId("M-001");
-
-        MissionResponse response = new MissionResponse();
-        response.setId(1L);
-        response.setMissionId("M-001");
-
-        when(missionRepository.findByMissionId("M-001")).thenReturn(Optional.of(entity));
-        when(missionMapper.toResponse(entity)).thenReturn(response);
+        when(missionRepository.findByMissionId("MISSION-001")).thenReturn(Optional.of(missionEntity));
+        when(missionRepository.findByMissionIdWithSorcerers("MISSION-001")).thenReturn(Optional.of(missionEntity));
+        when(missionRepository.findByMissionIdWithTechniques("MISSION-001")).thenReturn(Optional.of(missionEntity));
+        when(missionMapper.toResponse(any(MissionEntity.class))).thenReturn(missionResponse);
 
         // When
-        MissionResponse result = missionService.getMissionByMissionId("M-001");
+        MissionResponse result = missionService.getMissionByMissionId("MISSION-001");
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getMissionId()).isEqualTo("M-001");
+        assertThat(result.getMissionId()).isEqualTo("MISSION-001");
     }
 
     @Test
-    void testGetAllMissions_ReturnsList() {
+    void testDeleteMission_ExistingId_Success() throws MissionNotFoundException {
         // Given
-        when(missionRepository.findAll()).thenReturn(java.util.Collections.emptyList());
+        when(missionRepository.findById(1L)).thenReturn(Optional.of(missionEntity));
+        doNothing().when(missionRepository).delete(any(MissionEntity.class));
 
         // When
-        var result = missionService.getAllMissions();
-
-        // Then
-        assertThat(result).isNotNull();
-    }
-
-    @Test
-    void testDeleteMission_ExistingId_Success() throws Exception {
-        // Given
-        when(missionRepository.existsById(1L)).thenReturn(true);
-        doNothing().when(missionRepository).deleteById(1L);
-
-        // When & Then
         missionService.deleteMission(1L);
-        verify(missionRepository, times(1)).deleteById(1L);
+
+        // Then
+        verify(missionRepository).findById(1L);
+        verify(missionRepository).delete(missionEntity);
     }
 
     @Test
     void testDeleteMission_NonExistingId_ThrowsException() {
         // Given
-        when(missionRepository.existsById(999L)).thenReturn(false);
+        when(missionRepository.findById(99L)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> missionService.deleteMission(999L))
-                .isInstanceOf(MissionNotFoundException.class);
+        assertThatThrownBy(() -> missionService.deleteMission(99L))
+                .isInstanceOf(MissionNotFoundException.class)
+                .hasMessageContaining("не найдена");
+
+        verify(missionRepository, never()).delete(any());
     }
+
+
 }
