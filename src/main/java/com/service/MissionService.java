@@ -52,17 +52,16 @@ public class MissionService {
             MissionParser parser = ParserFactory.getParser(tempFile);
             Mission mission = parser.parse(tempFile);
 
-            // Проверка на дубликат
             if (missionRepository.existsByMissionId(mission.getMissionId())) {
                 throw new InvalidMissionFormatException("Миссия с ID " + mission.getMissionId() + " уже существует");
             }
 
             MissionEntity entity = missionMapper.toEntity(mission);
             MissionEntity savedEntity = missionRepository.save(entity);
-
             saveRelatedEntities(savedEntity, mission);
+            MissionEntity updatedEntity = missionRepository.save(savedEntity);
 
-            return missionMapper.toResponse(savedEntity);
+            return missionMapper.toResponse(updatedEntity);
 
         } catch (Exception e) {
             throw new InvalidMissionFormatException("Ошибка обработки файла: " + e.getMessage());
@@ -82,7 +81,6 @@ public class MissionService {
     }
 
     private void saveRelatedEntities(MissionEntity mission, Mission sourceMission) {
-        // Сохраняем проклятие
         if (sourceMission.getCurse() != null) {
             CurseEntity curseEntity = missionMapper.toCurseEntity(sourceMission.getCurse());
             curseEntity.setMission(mission);
@@ -90,56 +88,103 @@ public class MissionService {
             mission.setCurse(curseEntity);
         }
 
-        // Сохраняем магов
         for (Sorcerer sorcerer : sourceMission.getSorcerers()) {
             SorcererEntity entity = missionMapper.toSorcererEntity(sorcerer);
-            entity.setMission(mission);
-            sorcererRepository.save(entity);
-            mission.addSorcerer(entity);
+            SorcererEntity existingSorcerer = sorcererRepository
+                    .findByNameAndRank(entity.getName(), entity.getRank())
+                    .orElse(null);
+
+            if (existingSorcerer != null) {
+                mission.addSorcerer(existingSorcerer);
+            } else {
+                SorcererEntity savedSorcerer = sorcererRepository.save(entity);
+                mission.addSorcerer(savedSorcerer);
+            }
         }
 
-        // Сохраняем техники
         for (Technique technique : sourceMission.getTechniques()) {
             TechniqueEntity entity = missionMapper.toTechniqueEntity(technique);
-            entity.setMission(mission);
-            techniqueRepository.save(entity);
-            mission.addTechnique(entity);
+            TechniqueEntity existingTechnique = techniqueRepository
+                    .findByNameAndTypeAndOwner(entity.getName(), entity.getType(), entity.getOwner())
+                    .orElse(null);
+
+            if (existingTechnique != null) {
+                mission.addTechnique(existingTechnique);
+            } else {
+                TechniqueEntity savedTechnique = techniqueRepository.save(entity);
+                mission.addTechnique(savedTechnique);
+            }
         }
 
-        // Сохраняем экономическую оценку
         if (sourceMission.getEconomicAssessment() != null) {
             EconomicAssessmentEntity entity = missionMapper.toEconomicAssessmentEntity(sourceMission.getEconomicAssessment());
             entity.setMission(mission);
             economicAssessmentRepository.save(entity);
             mission.setEconomicAssessment(entity);
         }
-
-        missionRepository.save(mission);
     }
 
     public List<MissionResponse> getAllMissions() {
-        return missionRepository.findAll().stream()
+        // Загружаем базовые данные миссий
+        List<MissionEntity> missions = missionRepository.findAllWithBasicData();
+
+        // Для каждой миссии загружаем колдунов и техники отдельными запросами
+        for (MissionEntity mission : missions) {
+            MissionEntity missionWithSorcerers = missionRepository.findByIdWithSorcerers(mission.getId())
+                    .orElse(mission);
+            MissionEntity missionWithTechniques = missionRepository.findByIdWithTechniques(mission.getId())
+                    .orElse(mission);
+
+            mission.setSorcerers(missionWithSorcerers.getSorcerers());
+            mission.setTechniques(missionWithTechniques.getTechniques());
+        }
+
+        return missions.stream()
                 .map(missionMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     public MissionResponse getMissionById(Long id) throws MissionNotFoundException {
-        MissionEntity entity = missionRepository.findById(id)
+        // Загружаем миссию с базовыми данными
+        MissionEntity mission = missionRepository.findById(id)
                 .orElseThrow(() -> new MissionNotFoundException("Миссия не найдена с ID: " + id));
-        return missionMapper.toResponse(entity);
+
+        // Загружаем колдунов
+        MissionEntity missionWithSorcerers = missionRepository.findByIdWithSorcerers(id)
+                .orElse(mission);
+        mission.setSorcerers(missionWithSorcerers.getSorcerers());
+
+        // Загружаем техники
+        MissionEntity missionWithTechniques = missionRepository.findByIdWithTechniques(id)
+                .orElse(mission);
+        mission.setTechniques(missionWithTechniques.getTechniques());
+
+        return missionMapper.toResponse(mission);
     }
 
     public MissionResponse getMissionByMissionId(String missionId) throws MissionNotFoundException {
-        MissionEntity entity = missionRepository.findByMissionId(missionId)
+        MissionEntity mission = missionRepository.findByMissionId(missionId)
                 .orElseThrow(() -> new MissionNotFoundException("Миссия не найдена: " + missionId));
-        return missionMapper.toResponse(entity);
+
+        MissionEntity missionWithSorcerers = missionRepository.findByMissionIdWithSorcerers(missionId)
+                .orElse(mission);
+        mission.setSorcerers(missionWithSorcerers.getSorcerers());
+
+        MissionEntity missionWithTechniques = missionRepository.findByMissionIdWithTechniques(missionId)
+                .orElse(mission);
+        mission.setTechniques(missionWithTechniques.getTechniques());
+
+        return missionMapper.toResponse(mission);
     }
 
     @Transactional
     public void deleteMission(Long id) throws MissionNotFoundException {
-        if (!missionRepository.existsById(id)) {
-            throw new MissionNotFoundException("Миссия не найдена с ID: " + id);
-        }
-        missionRepository.deleteById(id);
+        MissionEntity mission = missionRepository.findById(id)
+                .orElseThrow(() -> new MissionNotFoundException("Миссия не найдена с ID: " + id));
+
+        mission.getSorcerers().clear();
+        mission.getTechniques().clear();
+
+        missionRepository.delete(mission);
     }
 }

@@ -1,6 +1,8 @@
 package com.model.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "techniques")
@@ -21,9 +23,8 @@ public class TechniqueEntity {
 
     private Long damage;
 
-    @ManyToOne
-    @JoinColumn(name = "mission_id", nullable = false)
-    private MissionEntity mission;
+    @ManyToMany(mappedBy = "techniques")
+    private List<MissionEntity> missions = new ArrayList<>();
 
     public TechniqueEntity() {}
 
@@ -50,6 +51,17 @@ public class TechniqueEntity {
     public Long getDamage() { return damage; }
     public void setDamage(Long damage) { this.damage = damage; }
 
-    public MissionEntity getMission() { return mission; }
-    public void setMission(MissionEntity mission) { this.mission = mission; }
+    public List<MissionEntity> getMissions() { return missions; }
+    public void setMissions(List<MissionEntity> missions) { this.missions = missions; }
+
+    // Helper methods for bidirectional relationship
+    public void addMission(MissionEntity mission) {
+        missions.add(mission);
+        mission.getTechniques().add(this);
+    }
+
+    public void removeMission(MissionEntity mission) {
+        missions.remove(mission);
+        mission.getTechniques().remove(this);
+    }
 }

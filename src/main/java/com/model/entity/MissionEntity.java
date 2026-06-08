@@ -38,10 +38,20 @@ public class MissionEntity {
     @OneToOne(mappedBy = "mission", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private CurseEntity curse;
 
-    @OneToMany(mappedBy = "mission", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "mission_sorcerers",
+            joinColumns = @JoinColumn(name = "mission_id"),
+            inverseJoinColumns = @JoinColumn(name = "sorcerer_id")
+    )
     private List<SorcererEntity> sorcerers = new ArrayList<>();
 
-    @OneToMany(mappedBy = "mission", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "mission_techniques",
+            joinColumns = @JoinColumn(name = "mission_id"),
+            inverseJoinColumns = @JoinColumn(name = "technique_id")
+    )
     private List<TechniqueEntity> techniques = new ArrayList<>();
 
     @OneToOne(mappedBy = "mission", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
@@ -101,21 +111,34 @@ public class MissionEntity {
 
     public List<SorcererEntity> getSorcerers() { return sorcerers; }
     public void setSorcerers(List<SorcererEntity> sorcerers) { this.sorcerers = sorcerers; }
-    public void addSorcerer(SorcererEntity sorcerer) {
-        sorcerers.add(sorcerer);
-        sorcerer.setMission(this);
-    }
 
     public List<TechniqueEntity> getTechniques() { return techniques; }
     public void setTechniques(List<TechniqueEntity> techniques) { this.techniques = techniques; }
-    public void addTechnique(TechniqueEntity technique) {
-        techniques.add(technique);
-        technique.setMission(this);
-    }
 
     public EconomicAssessmentEntity getEconomicAssessment() { return economicAssessment; }
     public void setEconomicAssessment(EconomicAssessmentEntity economicAssessment) {
         this.economicAssessment = economicAssessment;
         if (economicAssessment != null) economicAssessment.setMission(this);
+    }
+
+    // Helper methods for bidirectional relationships
+    public void addSorcerer(SorcererEntity sorcerer) {
+        sorcerers.add(sorcerer);
+        sorcerer.getMissions().add(this);
+    }
+
+    public void removeSorcerer(SorcererEntity sorcerer) {
+        sorcerers.remove(sorcerer);
+        sorcerer.getMissions().remove(this);
+    }
+
+    public void addTechnique(TechniqueEntity technique) {
+        techniques.add(technique);
+        technique.getMissions().add(this);
+    }
+
+    public void removeTechnique(TechniqueEntity technique) {
+        techniques.remove(technique);
+        technique.getMissions().remove(this);
     }
 }

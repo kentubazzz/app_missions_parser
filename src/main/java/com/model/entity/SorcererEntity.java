@@ -1,6 +1,8 @@
 package com.model.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "sorcerers")
@@ -16,9 +18,8 @@ public class SorcererEntity {
     @Column(nullable = false, length = 50)
     private String rank;
 
-    @ManyToOne
-    @JoinColumn(name = "mission_id", nullable = false)
-    private MissionEntity mission;
+    @ManyToMany(mappedBy = "sorcerers")
+    private List<MissionEntity> missions = new ArrayList<>();
 
     public SorcererEntity() {}
 
@@ -37,6 +38,6 @@ public class SorcererEntity {
     public String getRank() { return rank; }
     public void setRank(String rank) { this.rank = rank; }
 
-    public MissionEntity getMission() { return mission; }
-    public void setMission(MissionEntity mission) { this.mission = mission; }
+    public List<MissionEntity> getMissions() { return missions; }
+    public void setMissions(List<MissionEntity> missions) { this.missions = missions; }
 }
